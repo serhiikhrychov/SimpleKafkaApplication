@@ -1,4 +1,6 @@
-﻿using Confluent.Kafka;
+﻿using System.Collections;
+using Confluent.Kafka;
+using System.Linq;
 
 namespace SimpleKafkaApplication
 {
@@ -22,32 +24,35 @@ namespace SimpleKafkaApplication
                 var message = new Message<Null, string> {Value = messageValue};
                 // Produce a message to Kafka
                 var result = producer.ProduceAsync(kafkaTopic, message).GetAwaiter().GetResult();
-                
-                Console.WriteLine($"Message produced to topic {result.Topic} at partition {result.Partition} with offset {result.Offset}");
-                
+
+                Console.WriteLine($"Message {messageValue} produced to topic {result.Topic}");
+
 
 
                 var consumerConfig = new ConsumerConfig
                 {
                     BootstrapServers = kafkaServer,
                     GroupId = "my_group_id",
-                    AutoOffsetReset = AutoOffsetReset.Latest
+                    AutoOffsetReset = AutoOffsetReset.Earliest
                 };
 
                 // Create a Kafka consumer
-                using (var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build())
+                IEnumerable<ConsumeResult<Ignore, string>> Enumerable()
                 {
-                    consumer.Subscribe(kafkaTopic);
+                    using (var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build())
+                    {
+                        consumer.Subscribe(kafkaTopic);
 
-                    // Consume messages from Kafka
-                    var consumeResult = consumer.Consume(TimeSpan.FromSeconds(1));
-
-                    // Print the message value to the console
-                    Console.WriteLine(consumeResult != null
-                        ? consumeResult.Message.Value
-                        : "No new messages on the topic.");
+                        while (true)
+                            yield return consumer.Consume(TimeSpan.FromSeconds(1));
+                    }
                 }
+
+                // Consume messages from Kafka
+                var consumeResult = Enumerable().SkipWhile(x => x == null).TakeWhile(x => x != null).Last();
+                Console.WriteLine($"Message {consumeResult.Message.Value} consumed from topic {consumeResult.Topic}");
             }
+
+        }
         }
     }
-}
