@@ -15,7 +15,7 @@ namespace SimpleKafkaApplication
             
             ProduceMessage(messageValue, kafkaTopic, kafkaServer);
             
-            var messageValueFromConsumer = ConsumerMessageAsync(kafkaTopic, kafkaServer);
+            var messageValueFromConsumer = ConsumerMessage(kafkaTopic, kafkaServer);
 
             Debug.Assert(messageValue == messageValueFromConsumer);
         }
@@ -37,7 +37,7 @@ namespace SimpleKafkaApplication
             }
         }
 
-        private static string ConsumerMessageAsync(string kafkaTopic, string kafkaServer)
+        private static string ConsumerMessage(string kafkaTopic, string kafkaServer)
         {
             var consumerConfig = new ConsumerConfig
             {
